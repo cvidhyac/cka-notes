@@ -10,7 +10,8 @@
 ## How storage works in containers?
 
 - Docker organizes the data in multiple directories. Within the `/var/lib/docker`, there are multiple directories.
-  Data from images is stored in `/images`, data from storage driver is stored in `/aufs`, and when volumes are attached, the data
+  Data from images is stored in `/images`, data from storage driver is stored in `/aufs`, and when volumes are attached,
+  the data
   is stored in `/volume`.
 - It is also important to understand the layered architecture in docker.
 
@@ -29,7 +30,7 @@
   remains unchanged. This mechanism is called "Copy On Write" mechanism. When container is destroyed, this copy is
   destroyed as well. Image should be rebuilt for these changes to be persistent.
 
--  To be able to move these changes between containers without rebuilding the image, a "Volume" should be added
+- To be able to move these changes between containers without rebuilding the image, a "Volume" should be added
 
 ## Docker Volumes
 
@@ -42,27 +43,32 @@ the path specified in the container.
 
 Create a volume in docker: `docker volume create my_volume`
 
-Specify volume mount: `docker run mycontainer -v my_volume:/var/lib/mysql mysql` --> indicates volume mapped to container path
+Specify volume mount: `docker run mycontainer -v my_volume:/var/lib/mysql mysql` --> indicates volume mapped to
+container path
 
 When the volume specified in `docker run` command doesn't exist, docker automatically creates that volume in
 `/var/lib/docker/<volume_name>` path.
 
 ### What is bind mount?
 
-The directory exists on the host in a specific path, and data from container should be bound to the path that exists on host.
+The directory exists on the host in a specific path, and data from container should be bound to the path that exists on
+host.
 
-For example, if the data should be stored in /data/mysql on external volume and not stored in container, it should be bound.
+For example, if the data should be stored in /data/mysql on external volume and not stored in container, it should be
+bound.
 
 ```shell
 docker run mycontainer \
 --mount type=bind, source=/data/mysql, target=/var/lib/mysql mysql
 ```
+
 source = path on the host
 target = path on the container
 
 ### Storage driver
 
-Docker uses storage drivers to manage the layered architecture. It chooses the storage driver based on OS running docker.
+Docker uses storage drivers to manage the layered architecture. It chooses the storage driver based on OS running
+docker.
 
 Popular storage driver:
 
@@ -76,3 +82,30 @@ To persist storage, we need volume. Volumes are not handled by storage driver, t
 "Volume drivers" that help persist stored data.
 
 Default volume driver is `local`. Other external volume driver can be Azure file storage, Amazon EBS etc.,
+
+## Static Provisioning and Dynamic Provisioning
+
+- Static provisioning is through `hostPath` typed volumes and `PersistentVolume`
+- Dynamic provisioning is through `StorageClasses`.
+
+## What is PersistentVolumeClaim?
+
+- When same volume needs to be shared between multiple pods, we create a `PersistentVolumeClaim` which would then
+  claim specific storage requests for 100Mi or 500Mi. When pods are deleted, the request goes into `Released` state.
+- Persistent Volume Claim will be in pending state until it is claimed by a pod.
+- When a PVC is bound a pod, it cannot be deleted until the pod is deleted.
+
+## PersistentVolume
+
+- Needs to be in the same namespace as the pod.
+- It has various settings like `ReclaimPolicy`, `VolumeBindingMode`, `StorageClass` and many others. When PV would wait
+  for first consumer or pvc bound to a pod, the state of the PV will be Pending, once it is mounted to a pod via PVC or
+  direct volume, the status then changes to `Bound`
+
+## StorageClasses
+
+- Helps in dynamic provisioning
+- Very useful when storage is provided by cloud provider like portworx or google cloud storage. Each cloud provider
+  has their own specific storage class `Provisioner` that needs to be defined in the yaml file.
+- Also define access mode (RWO, RWX etc.,) and how much storage is requested.
+
