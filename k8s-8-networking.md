@@ -276,8 +276,22 @@ Now bring this up,
 - Bridge: Default in docker when container is run, docker manages all ip table entries.
 
 In Bridge mode, the container is accessible within the host, however external access is not allowed. To enable external
-access, "port mapping" should be used with `-p 8080:80` 
+access, "port mapping" should be used with `-p 8080:80`
 
 How to check what is the current network list in docker?
 `docker network ls`
+
+
+## Configuring CNI
+
+CNI = Container Network Interface
+
+* k8s supports many network plugins such as flannel, weave, default linux bridge, vmware nsx-t etc.,
+* The CNI plugins are installed in `/opt/cni/bin` directory. The bin directory contains the executables.
+* The network configurations for the plugins are at : `/etc/cni/net.d` directory. The configuration files have a
+  `.conflist` suffix
+* The conf files have a specific structure as directed by the CNI specification. It has many sections and indicates
+  the network plugin configuration.
+
+## IP Address Management (IPAM)
 
