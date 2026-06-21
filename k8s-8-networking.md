@@ -281,10 +281,11 @@ access, "port mapping" should be used with `-p 8080:80`
 How to check what is the current network list in docker?
 `docker network ls`
 
-
 ## Configuring CNI
 
-CNI = Container Network Interface
+CNI = Container Network Interface, k8s compliant specification
+
+CNI plugins are the network solution providers
 
 * k8s supports many network plugins such as flannel, weave, default linux bridge, vmware nsx-t etc.,
 * The CNI plugins are installed in `/opt/cni/bin` directory. The bin directory contains the executables.
@@ -293,5 +294,77 @@ CNI = Container Network Interface
 * The conf files have a specific structure as directed by the CNI specification. It has many sections and indicates
   the network plugin configuration.
 
+A basic plugin does the following:
+
+- Create veth pair
+- Attach veth pair
+- Assign IP Addresses
+- Bring up the interface
+- Delete veth pair
+
 ## IP Address Management (IPAM)
+
+* k8s does not care how IP Addresses are managed. It only requires that duplicate IP Addresses are not assigned.
+* The easiest way to do this is by storing the details of the IPs in a file, and a script that invokes it.
+* The script would invoke host-local / dhcp plugin that would invoke the plugin that assigns IP and stores the
+  assigned IP address to a file.
+
+### How to find which CNI plugin is installed on cluster?
+
+- `cd /etc/cni/net.d`
+- `ls` to find which conflist is present (minor-cniplugin.conflist, e.g. 10-flannel.conflist)
+- cat the conflist and find the `type`. File name also indicates it
+
+Note:
+Flannel does not care about how containers are networked to the host. It only cares about how traffic is transported
+between hosts. Flannel is focussed on networking and does not support network policies. It recommends Calico for
+network policies.
+
+### How to ping the pod curl works?
+
+`k get pods -owide` --> find the IP of the destination_pod to check connectivity
+`k exec -it source_pod -- curl -m 5 destination_pod_ip`
+
+### How to delete a CNI?
+
+- Delete the DaemonSet
+- Delete the configmap
+- Delete the configuration file
+
+## How do pods communicate to each other in same node or same cluster?
+
+- They communicate to each other through Services. And default `svc` is of type `ClusterIP`
+- This works until both pods are on the same node.
+- When k8s services are created, they are accessible from all pods on the cluster irrespective of what nodes they are
+  on.
+- `svc` is not bound to specific node, it is assigned a ClusterIP. Service is only accessible from all nodes in same
+  cluster. Service is hosted across the cluster
+
+## How would pods communicate to each other on different cluster?
+
+- When pods should be accessible to a pod in another cluster, it should use a `NodePort` service.
+- `NodePort` is similar to `ClusterIP`, in addition it exposes a port for external users to access the service.
+
+## How do services get IP Addresses, and how are they accessible to external users?
+
+- In a 3-node cluster, there is a kubelet in every node. Kubelet checks kube-apiserver to monitor any changes to 
+cluster.
+- When pods are requested to be created, kubelet creates the pods. It then invokes the CNI plugin to get the pod
+networking configured.
+- In each node, there is also a `kube-proxy` component. This also checks cluster activity and changes through
+kube-apiserver.
+- When services are requested to be created for pods, then kube-proxy springs into action.
+- The service is assigned an IP from a pre-configured range (check kube-controller-manager.yaml in `/etc/kubernetes/manifests`
+- Once Service has an IP assigned, `kube-proxy` starts creating forwarding rules from serviceIP:port to the pod's IP.
+
+How are these forwarding rules created?
+- Kube proxy supports many modes - userspace, ipvs and iptables. Default is iptables. The default mode how kube-proxy
+is configured can be changed via a commandline parameter or by checking its logs.
+- Everytime a service is created or deleted, the associated forwarding rules are also added or deleted.
+- kube-proxy is managed through a `DaemonSet`
+
+To find the default IP range of the given node, run `ip link`, find the default interface. Then query,
+`ip addr show default_interface_name`
+
+
 
