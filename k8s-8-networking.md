@@ -367,4 +367,39 @@ To find the default IP range of the given node, run `ip link`, find the default 
 `ip addr show default_interface_name`
 
 
+### How to know what type of kube-proxy is being used?
+Look in kube-proxy pod logs
 
+## k8s DNS
+
+- CoreDNS is recommended for recent versions of k8s. Internally it uses a service by name `kube-dns`.
+- k8s replaces dashes against an IP address containing dots, then adds the entries.
+- entries for each pod is located in `/etc/resolv.conf`
+- To find clusterIP, run the commands with `-owide`
+
+## Ingress
+
+- Ingress and Services are not the same. Ingress is deployed in front of load balancer to route traffic to different
+subdomains.
+- Ingress is deployed as a controller. Ingress resources are created to manage the routing configuration with
+different paths to route to the right application.
+- Ingress can be created two ways:
+  - create by path against same domain name by just separating backend
+  - create by different http hostnames and in addition separating the backend path as well.
+- Ingress Resources contain the rules.
+
+Limitation of Ingress:
+- Shared
+- No support for many multi-tenancy features such as rate limiting, traffic splitting etc.,
+
+Gateway API is recommended for enterprise multi-tenancy use cases.
+
+## Gateway API
+
+Gateway is the next-gen Ingress solution in k8s that address many multi-tenancy concerns.
+
+This architecture allows for 3 main objects, each managed by different set of persona.
+
+* Gateway Class: Managed by Infrastructure / Cloud Providers
+* Gateway Operators: Managed by Cluster Operators (k8s/openshift admins)
+* HTTP Route configurations: Managed by Application Development teams
