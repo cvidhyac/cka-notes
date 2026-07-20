@@ -403,3 +403,7 @@ This architecture allows for 3 main objects, each managed by different set of pe
 * Gateway Class: Managed by Infrastructure / Cloud Providers
 * Gateway Operators: Managed by Cluster Operators (k8s/openshift admins)
 * HTTP Route configurations: Managed by Application Development teams
+
+When configuring httproute, remember to check which namespace the gateway is present and add `namespace` in addition
+to `name` against the parentRefs.
+
